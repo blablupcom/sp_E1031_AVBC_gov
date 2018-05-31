@@ -9,9 +9,8 @@ import urllib2
 from datetime import datetime
 from bs4 import BeautifulSoup
 
-#### FUNCTIONS 1.2
 
-import requests    #  import requests to validate url
+#### FUNCTIONS 1.0
 
 def validateFilename(filename):
     filenameregex = '^[a-zA-Z0-9]+_[a-zA-Z0-9]+_[a-zA-Z0-9]+_[0-9][0-9][0-9][0-9]_[0-9QY][0-9]$'
@@ -37,14 +36,14 @@ def validateFilename(filename):
         return True
 
 
-def validateURL(url, requestdata):
+def validateURL(url, download_data):
     try:
-        r = requests.post(url, data = requestdata, allow_redirects=True, timeout=20)
+        r = requests.post(url, data=download_data)
         count = 1
         while r.status_code == 500 and count < 4:
             print ("Attempt {0} - Status code: {1}. Retrying.".format(count, r.status_code))
             count += 1
-            r = requests.post(url, data = requestdata, allow_redirects=True, timeout=20)
+            r = requests.post(url, data=download_data)
         sourceFilename = r.headers.get('Content-Disposition')
 
         if sourceFilename:
@@ -59,9 +58,9 @@ def validateURL(url, requestdata):
         return False, False
 
 
-def validate(filename, file_url, requestdata):
+def validate(filename, file_url, download_data):
     validFilename = validateFilename(filename)
-    validURL, validFiletype = validateURL(file_url, requestdata)
+    validURL, validFiletype = validateURL(file_url, download_data)
     if not validFilename:
         print filename, "*Error: Invalid filename*"
         print file_url
@@ -83,72 +82,71 @@ def convert_mth_strings ( mth_string ):
         mth_string = mth_string.replace(k, v)
     return mth_string
 
+
 #### VARIABLES 1.0
 
-entity_id = "E4303_SHMBC_gov"
-urls = ["https://secure.sthelens.net/servlet/localtransparency/LocalTransparency", "https://secure.sthelens.net/servlet/localtransparency/PreviousYears"]
+entity_id = "E1031_AVBC_gov"
+url = "http://www.ambervalley.gov.uk/council-and-democracy/council-budgets-and-spending/invoices-over-500.aspx"
 errors = 0
 data = []
-url="http://example.com"
+download_data = {"__EVENTTARGET":"",
+"__EVENTARGUMENT":"",
+"__VIEWSTATE":"/wEPDwUENTM4MWRkoQazEup3A3cpuKDAQVyRPVsKDWKUpiy7/P98F7cfzY4=",
+"ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$ddlYear":"2017",
+"ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$ddlMonth":"5",
+"ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$btnSubmit":"Submit",
+"__VIEWSTATEGENERATOR":"CA0B0334"}
 
 #### READ HTML 1.0
-
+import requests
 html = urllib2.urlopen(url)
-soup = BeautifulSoup(html, 'lxml')
-
+soup = BeautifulSoup(html, "lxml")
 
 #### SCRAPE DATA
-for url in urls:
-    if 'PreviousYears' not in url:
-        html = urllib2.urlopen(url)
-        soup = BeautifulSoup(html, 'lxml')
-        blocks = soup.find('select', attrs = {'id':'Options'})
-        options = blocks.find_all('option' )
-        for option in options:
-            links = option['value']
-            if 'csv' in links:
-                csvMth = links[:3]
-                csvYr = links.split('.')[0][-4:]
-                csvMth = convert_mth_strings(csvMth.upper())
-                requestdata = {'Options':'{}'.format(links),
-                        'loadFile':'Load file',}
-                data.append([csvYr, csvMth, url, requestdata])
-    else:
-        html = urllib2.urlopen(url)
-        soup = BeautifulSoup(html, 'lxml')
-        years = soup.find('select', id="OptionsYear").find_all('option')
-        for year in years:
-            year = year['value']
-            year_html = urllib2.urlopen('https://secure.sthelens.net/servlet/localtransparency/PreviousYears?filter={}'.format(year))
-            year_soup = BeautifulSoup(year_html, 'lxml')
-            blocks = year_soup.find('select', attrs={'id': 'Options'})
-            options = blocks.find_all('option')
-            for option in options:
-                links = option['value']
-                if 'csv' in links:
-                    csvMth = links[:3]
-                    csvYr = links.split('.')[0][-4:]
-                    csvMth = convert_mth_strings(csvMth.upper())
-                    requestdata = {'OptionsYear':year, 'Options':'{}'.format(links),
-                                   'loadFile':'Load file'}
-                    data.append([csvYr, csvMth, url, requestdata])
 
+year_dates = soup.find('select', attrs={'name':'ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$ddlYear'}).find_all('option')
+for year_date in year_dates:
+    year = year_date['value']
+    months_dates = soup.find('select', attrs={'name':'ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$ddlMonth'}).find_all('option')
+    for months_date in months_dates:
+        month = months_date['value']
+        download_data['ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$ddlYear'] = year
+        download_data['ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$ddlMonth'] = month
+        download_page = requests.post(url, data=download_data)
+        download_soup = BeautifulSoup(download_page.text, "lxml")
+        download_link = download_soup.find('input', id="ContentPlaceHolderDefault_MasterTemplateBodyMainPlaceHolder_ctl00_Invoices50Plus_4_btnDownloadCSV")
+        d_csv = ''
+        try:
+            d_csv = download_link['value']
+        except:
+            pass
+        if d_csv:
+            d_data = {"__EVENTTARGET":"",
+                    "__EVENTARGUMENT":"",
+                    "__VIEWSTATE":"/wEPDwUENTM4MWRkoQazEup3A3cpuKDAQVyRPVsKDWKUpiy7/P98F7cfzY4=",
+                    "ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$ddlYear":"2017",
+                    "ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$ddlMonth":"5",
+                    "ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$btnDownloadCSV":"DownloadCSV",
+                    "__VIEWSTATEGENERATOR":"CA0B0334"}
+            csvMth = months_date.text[:3]
+            csvYr = year
+            csvMth = convert_mth_strings(csvMth.upper())
+            data.append([csvYr, csvMth, url, d_data])
 
 
 #### STORE DATA 1.0
 
 for row in data:
-    csvYr, csvMth, url, requestdata = row
+    csvYr, csvMth, url, download_data = row
     filename = entity_id + "_" + csvYr + "_" + csvMth
     todays_date = str(datetime.now())
     file_url = url.strip()
 
-    valid = validate(filename, file_url, requestdata)
+    valid = validate(filename, file_url, download_data)
 
     if valid == True:
-        scraperwiki.sqlite.save(unique_keys=['f'], data={"l": file_url, "f": filename, "d": todays_date })
-        # print filename
-        print 'the scraper needs POST requests to get the spending files'
+        scraperwiki.sqlite.save(unique_keys=['l'], data={"l": file_url, "f": filename, "d": todays_date })
+        print filename
     else:
         errors += 1
 
