@@ -124,8 +124,8 @@ for year_date in year_dates:
             d_data = {"__EVENTTARGET":"",
                     "__EVENTARGUMENT":"",
                     "__VIEWSTATE":"/wEPDwUENTM4MWRkoQazEup3A3cpuKDAQVyRPVsKDWKUpiy7/P98F7cfzY4=",
-                    "ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$ddlYear":"2017",
-                    "ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$ddlMonth":"5",
+                    "ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$ddlYear":year,
+                    "ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$ddlMonth":month,
                     "ctl00$ctl00$ctl00$ContentPlaceHolderDefault$MasterTemplateBodyMainPlaceHolder$ctl00$Invoices50Plus_4$btnDownloadCSV":"DownloadCSV",
                     "__VIEWSTATEGENERATOR":"CA0B0334"}
             csvMth = months_date.text[:3]
